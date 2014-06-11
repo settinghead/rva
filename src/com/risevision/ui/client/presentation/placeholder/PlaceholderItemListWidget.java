@@ -12,6 +12,8 @@ import com.allen_sauer.gwt.dnd.client.DragEndEvent;
 import com.allen_sauer.gwt.dnd.client.DragHandler;
 import com.allen_sauer.gwt.dnd.client.DragStartEvent;
 import com.allen_sauer.gwt.dnd.client.VetoDragException;
+import com.google.gwt.core.client.JavaScriptObject;
+import com.google.gwt.core.client.JsArray;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.Window;
@@ -26,11 +28,13 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.gwt.user.client.ui.HTMLTable.CellFormatter;
 import com.risevision.common.client.info.PlaylistItemInfo;
+import com.risevision.common.client.json.JSOModel;
 import com.risevision.common.client.utils.RiseUtils;
 import com.risevision.ui.client.common.dnd.FlexTableRowDragController;
 import com.risevision.ui.client.common.dnd.FlexTableRowDropController;
 import com.risevision.ui.client.common.widgets.SpacerWidget;
 import com.risevision.ui.client.presentation.common.ItemTypeSelectWidget;
+import com.risevision.ui.server.data.PersistentConfigurationInfo;
 
 public class PlaceholderItemListWidget extends VerticalPanel implements ClickHandler {
 
@@ -56,7 +60,7 @@ public class PlaceholderItemListWidget extends VerticalPanel implements ClickHan
 	private int currentCommand;
 	private String currentKey;
 	
-	String[] header = new String[] {"20px", "100%", "100px", "20px", "20px", "35px", "50px"};
+	String[] header = new String[] {"20px", "100%", "60px", "80px", "20px", "20px", "35px", "50px"};
 
 	/*
 	 * Be careful with saving UI components in datastructures like this: if you
@@ -268,8 +272,14 @@ public class PlaceholderItemListWidget extends VerticalPanel implements ClickHan
 		this.playlistItems = playlistItems;
 		fixScheduleItemsId();
 		updateTable();
+		loadItemsProductStatus();
 	}	
 	
+	private void loadItemsProductStatus() {
+		// TODO Auto-generated method stub
+		//https://github.com/Rise-Vision/store-server/issues/50
+	}
+
 	public void updateTable() {
 		clearGrid();
 		setHeader();
@@ -281,6 +291,13 @@ public class PlaceholderItemListWidget extends VerticalPanel implements ClickHan
 			for (int i = 0; i < playlistItems.size(); i++)
 				updateTableRow(playlistItems.get(i), i);
 //			clearListLink.setVisible(true);
+//			callUrlNative(new PersistentConfigurationInfo().getServerURL(),"");
+			try {
+				callUrlNative("");
+				
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
 		}
 		// only show clear list for 2+ items
 		clearListLink.setVisible(playlistItems.size() > 1);
@@ -309,6 +326,7 @@ public class PlaceholderItemListWidget extends VerticalPanel implements ClickHan
 		else {
 			setAction(row, col++, item.getName(), ACTION_SELECT, rowId);
 		}
+		setText(row, col++, "N/A"); // status loaded async from Store API 
 		setWidget(row, col++, new Label(RiseUtils.capitalizeFirstLetter(item.getType())));
 		setAction(row, col++, "\u25B2", ACTION_MOVEUP, rowId); //arrow up
 		setAction(row, col++, "\u25BC", ACTION_MOVEDOWN, rowId); //arrow down
@@ -391,4 +409,61 @@ public class PlaceholderItemListWidget extends VerticalPanel implements ClickHan
 		for (int i = 0; i < playlistItems.size(); i++)
 			playlistItems.get(i).setId(Integer.toString(i));
 	}
+
+	private class zzz {
+		public String pc;
+		public String status;
+		public String expiry;
+	}
+
+	private void processResponse(JsArray<JavaScriptObject> jso) {
+//		private static void processResponse(JavaScriptObject jso, String mode) {
+
+		int errorCode;
+		String newDisplayId;
+
+		for (int i = 0; i < jso.length(); i++) {
+			JSOModel obj = (JSOModel) jso.get(i);
+			String pc = obj.get("pc");
+			String status = obj.get("status");
+			String expiry = obj.get("expiry");
+			if (pc != null && status != null) {
+				for (int j = 0; i < playlistItems.size(); j++) {
+					//if (pc.equals(playlistItems.get(i).getProductId())) {
+					//	playlistItems.get(i).setProductStatus(status);						
+					//}
+				}
+			}
+		}
+	}
+	
+	
+	private static native void callUrlNative(String url) /*-{
+	    try {
+	    	$wnd.alert("callUrlNative");
+	    	url = "https://store-dot-rvacore-test.appspot.com/v1/company/%7BcompanyId%7D/product/status?pc=1,2,3&callback=?";
+			$wnd.$.getJSON(url,
+				{format: 'json'},
+				function(result) {
+		    	    try { 
+	//	    	    	debugger;
+		    	    	
+			        	//$wnd.writeToLog("Register Display response - active");
+		    	    	//http://stackoverflow.com/questions/6257532/gwt-jsni-boolean
+		    	    	@com.risevision.ui.client.presentation.placeholder.PlaceholderItemListWidget::processResponse(Lcom/google/gwt/core/client/JsArray;)(result);
+		    	    }
+		    	    catch (err) {
+	    				$wnd.alert("Request failed - " + url + " - " + err.message);
+		    	    	//$wnd.writeToLog("Register Display request failed - " + url + " - " + err.message);
+		    	    }
+				}
+			);
+	    }
+	    catch (err) {
+			$wnd.alert("Request failed - " + url + " - " + err.message);
+	    	//$wnd.writeToLog("Register Display request error - " + url + " - " + err.message);
+	    }
+	}-*/;
+
+
 }
